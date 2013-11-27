@@ -148,10 +148,9 @@ void sfmfMain::OnDeviceRestored()
 
 void sfmfMain::OpenFile()
 {
-
+	ready_ = false;
 	auto openPicker = ref new Windows::Storage::Pickers::FileOpenPicker();
 	openPicker->FileTypeFilter->Append(L".wav");
-	openPicker->FileTypeFilter->Append(L".mp4");
 	create_task(openPicker->PickSingleFileAsync()).then([this](Windows::Storage::StorageFile^ file)
 	{
 		if (file != nullptr){
@@ -160,19 +159,26 @@ void sfmfMain::OpenFile()
 			sf::dout(file->IsAvailable.ToString());
 			//m_audioReader = ref new sf::AudioReader(file->Path);
 
-			create_task(file->OpenAsync(Windows::Storage::FileAccessMode::Read)).then([this, file](Windows::Storage::Streams::IRandomAccessStream^ stream)
+			auto audioReaderTask = create_task(file->OpenAsync(Windows::Storage::FileAccessMode::Read)).then([this, file](Windows::Storage::Streams::IRandomAccessStream^ stream)
 			{
-				create_async([this,stream](){
-					IMFSamplePtr sample;
-					m_audioReader = ref new sf::AudioReader(stream);
-					UINT status = 0;
-					while (status != MF_SOURCE_READERF_ENDOFSTREAM)
-					{
-						status = m_audioReader->ReadSample(sample);
-						sf::dout(boost::wformat(L"%10x \n") % m_audioReader->SampleTime);
-					}
+				IMFSamplePtr sample;
+				m_audioReader = ref new sf::AudioReader(stream);
+			});
+
+			auto videoWriterTask = create_task(Windows::Storage::KnownFolders::VideosLibrary->CreateFileAsync
+				(L"test.m4v", Windows::Storage::CreationCollisionOption::ReplaceExisting))
+				.then([this](Windows::Storage::StorageFile^ f){
+				sf::dout(f->DisplayName);
+				sf::dout(f->Path);
+				sf::dout(f->IsAvailable.ToString());
+				create_task(f->OpenAsync(Windows::Storage::FileAccessMode::ReadWrite))
+					.then([this, f](Windows::Storage::Streams::IRandomAccessStream^ stream){
+					m_videoWriter = ref new sf::VideoWriter(stream);
 				});
 			});
+
+			(audioReaderTask && videoWriterTask).then([this](){ready_ = true; });
+
 			
 			/*create_task(Windows::Storage::KnownFolders::MusicLibrary->CreateFileAsync
 				(L"test.m4v", Windows::Storage::CreationCollisionOption::ReplaceExisting))

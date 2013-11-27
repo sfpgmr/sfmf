@@ -53,5 +53,7 @@ namespace sfmf
 		std::unique_ptr<sf::AutoMF> m_mf;
 		Windows::Storage::Streams::IRandomAccessStream^ m_videoStream;
 		DirectXPage^ m_page;
+		bool ready_;
+
 	};
 }

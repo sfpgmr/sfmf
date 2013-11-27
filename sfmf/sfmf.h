@@ -59,6 +59,8 @@ namespace sf {
 			}
 		}
 		void WriteSink();
+		void WriteAudioSample(IMFSample* sample);
+		void WriteVideoSample(IMFSample* sample);
 		void WriteTextureToBuffer(ID3D11DeviceContext1Ptr& context, ID3D11Texture2DPtr& texture);
 
 		property UINT SamplesPerSecond;

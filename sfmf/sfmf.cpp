@@ -594,7 +594,15 @@ namespace sf {
 	  CHK(currentMediaType_->SetUINT32(MF_MT_AUDIO_BITS_PER_SAMPLE, BitsPerSample));
 	  CHK(currentMediaType_->SetUINT32(MF_MT_AUDIO_SAMPLES_PER_SECOND, SamplesPerSecond));
 	  CHK(currentMediaType_->SetUINT32(MF_MT_AUDIO_NUM_CHANNELS, ChannelCount));
+	  //DWORD blockAlign;
+	  //CHK(nativeMediaType_->GetUINT32(MF_MT_AUDIO_BLOCK_ALIGNMENT, &blockAlign));
+	  //CHK(currentMediaType_->SetUINT32(MF_MT_AUDIO_BLOCK_ALIGNMENT,blockAlign ));
 	  CHK(reader_->SetCurrentMediaType(0, nullptr, currentMediaType_.Get()));
+	  CHK(reader_->GetCurrentMediaType(0,currentMediaType_.ReleaseAndGetAddressOf()));
+	  UINT32 blockAlign;
+	  CHK(currentMediaType_->GetUINT32(MF_MT_AUDIO_BLOCK_ALIGNMENT, &blockAlign));
+
+	  sf::dout(boost::wformat(L"Block Align: %10d %10x") % blockAlign % blockAlign);
 
   }
 
