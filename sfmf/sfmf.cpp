@@ -446,6 +446,7 @@ namespace sf {
     CHK(MFCreateMFByteStreamOnStreamEx(reinterpret_cast<IUnknown *>(stream_), &byteStream_));
     CHK(MFCreateAttributes(&attr_, 10));
     CHK(attr_->SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, true));
+    CHK(attr_->SetUINT32(MF_SINK_WRITER_DISABLE_THROTTLING , true));
 	IMFSinkWriterPtr sinkWriter;
 
 	CHK(MFCreateSinkWriterFromURL(L".mp4", byteStream_.Get(), attr_.Get(), &sinkWriter));
@@ -518,7 +519,7 @@ namespace sf {
     //   
 
     CHK(MFCreateSample(&sample_));   
-    sampleTime_ = 0;
+    videoSampleTime_ = 0;
     CHK(sample_->SetSampleDuration(hnsSampleDuration));   
 
     //   
@@ -532,11 +533,11 @@ namespace sf {
   }
 
   // テクスチャをメディアバッファに書き込む
-  void VideoWriter::WriteTextureToBuffer(ID3D11DeviceContext1Ptr& context,ID3D11Texture2DPtr& texture)
+  void VideoWriter::SetTextureToSample(ID3D11DeviceContext1* context,ID3D11Texture2D* texture)
   {
 
     // タイムスタンプの設定
-    CHK(sample_->SetSampleTime(sampleTime_));   
+    CHK(sample_->SetSampleTime(videoSampleTime_));   
     
     // 書き込み先バッファのロック
     unsigned char *pbBuffer = nullptr;     
@@ -544,27 +545,30 @@ namespace sf {
     
     // 読み込みテクスチャをマップ
     D3D11_MAPPED_SUBRESOURCE mapped;
-    CHK(context->Map(texture.Get(),0,D3D11_MAP_READ,0,&mapped));
+    CHK(context->Map(texture,0,D3D11_MAP_READ,0,&mapped));
     
     MFCopyImage(pbBuffer,WIDTH * 4,reinterpret_cast<BYTE*>(mapped.pData),mapped.RowPitch,WIDTH * 4,HEIGHT);
 
     // 書き込み先バッファのアンロック
     CHK(buffer_->Unlock());   
     // テクスチャをアンマップ
-    context->Unmap(texture.Get(),0);
-    sampleTime_ += hnsSampleDuration;   
+    context->Unmap(texture,0);
+    videoSampleTime_ += hnsSampleDuration;   
   }
 
-  void VideoWriter::WriteSink()
+  void VideoWriter::WriteVideoSample()
   {
   
-    //   
-    // Write the media sample   
-    //   
-
     CHK(sinkWriter_->WriteSample(streamIndex_, sample_.Get()));   
-
   }
+
+  void VideoWriter::WriteAudioSample(IMFSample* sample)
+  {
+    CHK(sinkWriter_->WriteSample(streamIndexAudio_, sample));
+    CHK(sample->GetSampleTime(&audioSampleTime_));
+    dout(boost::wformat(L"%10x \n") % audioSampleTime_);
+  }
+
 
   AudioReader::AudioReader(Windows::Storage::Streams::IRandomAccessStream^ stream) {
 
@@ -602,14 +606,14 @@ namespace sf {
 	  UINT32 blockAlign;
 	  CHK(currentMediaType_->GetUINT32(MF_MT_AUDIO_BLOCK_ALIGNMENT, &blockAlign));
 
-	  sf::dout(boost::wformat(L"Block Align: %10d %10x") % blockAlign % blockAlign);
+	  DOUT(boost::wformat(L"Block Align: %10d %10x") % blockAlign % blockAlign);
 
   }
 
   DWORD AudioReader::ReadSample(IMFSamplePtr& sample)
   {
 	  DWORD streamIndex,flags;
-	  CHK(reader_->ReadSample(0,0,&streamIndex,&flags,&sampleTime_,sample.ReleaseAndGetAddressOf()));
+	  CHK(reader_->ReadSample(0,0,&streamIndex,&flags,&videoSampleTime_,sample.ReleaseAndGetAddressOf()));
 	  return flags;
   }
 }

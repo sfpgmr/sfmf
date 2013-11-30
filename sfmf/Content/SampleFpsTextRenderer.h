@@ -13,7 +13,7 @@ namespace sfmf
 		SampleFpsTextRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources);
 		void CreateDeviceDependentResources();
 		void ReleaseDeviceDependentResources();
-		void Update(DX::StepTimer const& timer);
+		void Update(LONGLONG stepTime);
 		void Render(ID2D1Bitmap1* targetBitmap = nullptr);
 
 	private:

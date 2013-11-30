@@ -38,24 +38,26 @@ SampleFpsTextRenderer::SampleFpsTextRenderer(const std::shared_ptr<DX::DeviceRes
 }
 
 // 表示するテキストを更新します。
-void SampleFpsTextRenderer::Update(DX::StepTimer const& timer)
+void SampleFpsTextRenderer::Update(LONGLONG stepTime)
 {
 	// 表示するテキストを更新します。
-	uint32 fps = timer.GetFramesPerSecond();
+	// uint32 fps = timer.GetFramesPerSecond();
 
-	m_text = (fps > 0) ? std::to_wstring(fps) + L" FPS" : L" - FPS";
+	// m_text = (fps > 0) ? std::to_wstring(fps) + L" FPS" : L" - FPS";
+
+  m_text = L".WAVファイルからM4Vファイルを生成するサンプル";
 
 	DX::ThrowIfFailed(
 		m_deviceResources->GetDWriteFactory()->CreateTextLayout(
 			m_text.c_str(),
 			(uint32) m_text.length(),
 			m_textFormat.Get(),
-			240.0f, // 入力テキストの最大幅。
-			50.0f, // 入力テキストの最大高さ。
+			1280.0f, // 入力テキストの最大幅。
+			40.0f, // 入力テキストの最大高さ。
 			&m_textLayout
 			)
 		);
-
+  DX::ThrowIfFailed(m_textLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING));
 	DX::ThrowIfFailed(
 		m_textLayout->GetMetrics(&m_textMetrics)
 		);
@@ -74,22 +76,23 @@ void SampleFpsTextRenderer::Render(ID2D1Bitmap1* targetBitmap)
 	context->BeginDraw();
 
 	// 右下隅に配置
-	D2D1::Matrix3x2F screenTranslation = D2D1::Matrix3x2F::Translation(
-		logicalSize.Width - m_textMetrics.layoutWidth,
-		logicalSize.Height - m_textMetrics.height
-		);
+  D2D1::Matrix3x2F screenTranslation = D2D1::Matrix3x2F::Translation(
+    0.0f, logicalSize.Height);
+//		logicalSize.Height - m_textMetrics.layoutHeight
+	//	);
+
+  //D2D1::Matrix3x2F screenTranslation = D2D1::Matrix3x2F::Translation(0.0f,0.0f);
+   screenTranslation._22 = screenTranslation._22 * -1.0f;
 
 	context->SetTransform(screenTranslation * m_deviceResources->GetOrientationTransform2D());
-
-	DX::ThrowIfFailed(
-		m_textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING)
-		);
 
 	context->DrawTextLayout(
 		D2D1::Point2F(0.f, 0.f),
 		m_textLayout.Get(),
 		m_whiteBrush.Get()
 		);
+
+  context->DrawLine(D2D1::Point2F(0.0f, 0.0f), D2D1::Point2F(100.0f, 100.0f), m_whiteBrush.Get());
 
 	// D2DERR_RECREATE_TARGET をここで無視します。このエラーは、デバイスが失われたことを示します。
 	// これは、Present に対する次回の呼び出し中に処理されます。

@@ -16,9 +16,10 @@ namespace sfmf
 		void CreateDeviceDependentResources();
 		void CreateWindowSizeDependentResources();
 		void ReleaseDeviceDependentResources();
-		void Update(DX::StepTimer const& timer);
+		void Update(LONGLONG  stepTime);
 		void Render();
 		void RenderToTexture();
+    void CopyStageTexture();
 		void StartTracking();
 		void TrackingUpdate(float positionX);
 		void StopTracking();
@@ -26,7 +27,7 @@ namespace sfmf
 
 		void WriteVideoFrame();
 		ID2D1Bitmap1* GetvideoTextureBitmap(){ return m_videoBitmap.Get(); }
-
+    ID3D11Texture2D* GetVideoStageTexture() { return m_videoStageTexture.Get(); }
 
 	private:
 		void Rotate(float radians);

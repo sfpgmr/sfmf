@@ -9,10 +9,17 @@ namespace sf {
   {
     OutputDebugStringW((boost::wformat(L"FILE:%s LINE:%d MESSAGE:%s \n") % file % line % str).str().data());
   }
+  
   inline void dout(wchar_t* file,int line,wchar_t* str)
   {
     OutputDebugStringW((boost::wformat(L"FILE:%s LINE:%d MESSAGE:%s \n") % file % line % str).str().data());
   }
+
+  inline void dout(wchar_t* file, int line, Platform::String^ str)
+  {
+    OutputDebugStringW((boost::wformat(L"FILE:%s LINE:%d MESSAGE:%s \n") % file % line % str->Data()).str().data());
+  }
+
   inline void dout(wchar_t* file,int line,HRESULT hr)
   {
 	  wchar_t mes[1024];

@@ -15,6 +15,8 @@
 #include <agile.h>
 #include <concrt.h>
 #include <collection.h>
+#include <thread>
+#include <mutex>
 
 //#define _SCL_SECURE_NO_WARNINGS
 #pragma warning(disable:4996)

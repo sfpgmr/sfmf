@@ -8,6 +8,8 @@ using namespace sfmf;
 using namespace DirectX;
 using namespace Windows::Foundation;
 
+extern const long long hnsSampleDuration;
+
 // ファイルから頂点とピクセル シェーダーを読み込み、キューブのジオメトリをインスタンス化します。
 Sample3DSceneRenderer::Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) :
 	m_loadingComplete(false),
@@ -70,7 +72,7 @@ void Sample3DSceneRenderer::CreateWindowSizeDependentResources()
 		XMMatrixTranspose(perspectiveMatrix)
 		);
 	// 視点は (0,0.7,1.5) の位置にあり、y 軸に沿って上方向のポイント (0,-0.1,0) を見ています。
-	static const XMVECTORF32 eye = { 0.0f, 0.0f, -2.5f, 0.0f };
+	static const XMVECTORF32 eye = { 0.0f, 0.0f, 2.5f, 0.0f };
 	static const XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
 	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
 
@@ -78,15 +80,14 @@ void Sample3DSceneRenderer::CreateWindowSizeDependentResources()
 }
 
 // フレームごとに 1 回呼び出し、キューブを回転させてから、モデルおよびビューのマトリックスを計算します。
-void Sample3DSceneRenderer::Update(DX::StepTimer const& timer)
+void Sample3DSceneRenderer::Update(LONGLONG stepTime)
 {
 	if (!m_tracking)
 	{
 		// 度をラジアンに変換し、秒を回転角度に変換します
 		float radiansPerSecond = XMConvertToRadians(m_degreesPerSecond);
-		double totalRotation = timer.GetTotalSeconds() * radiansPerSecond;
+		double totalRotation = (double)(stepTime) / 10000000.0 * (double)radiansPerSecond;
 		float radians = static_cast<float>(fmod(totalRotation, XM_2PI));
-
 		Rotate(radians);
 	}
 }
@@ -183,7 +184,7 @@ void Sample3DSceneRenderer::RenderToTexture()
 	//context->OMSetRenderTargets(1, targets, m_deviceResources->GetDepthStencilView());
 
 
-//	context->ClearRenderTargetView(m_videoRenderTargetView.Get(), m_clearColor);
+  //	context->ClearRenderTargetView(m_videoRenderTargetView.Get(), m_clearColor);
 	
 	// 定数バッファーを準備して、グラフィックス デバイスに送信します。
 	context->UpdateSubresource(
@@ -257,10 +258,14 @@ void Sample3DSceneRenderer::RenderToTexture()
 //	context->OMSetRenderTargets(1, nullptr, nullptr);
 
 
-	// CPU読み取り可能なサーフェースにコピーする
-	context->CopyResource(m_videoStageTexture.Get(), m_videoTexture.Get());
 }
 
+void Sample3DSceneRenderer::CopyStageTexture()
+{
+  // CPU読み取り可能なサーフェースにコピーする
+  m_deviceResources->GetD3DDeviceContext()->CopyResource(m_videoStageTexture.Get(), m_videoTexture.Get());
+
+}
 
 void Sample3DSceneRenderer::CreateDeviceDependentResources()
 {
@@ -550,10 +555,10 @@ void Sample3DSceneRenderer::CreateDeviceDependentResources()
 
 			VertexVideo videoVerticies[4] = 
 		{
-			{ DirectX::XMFLOAT2(-adjust_width, -1.0f), DirectX::XMFLOAT2(0.0f, adjustTextureV) },
-			{ DirectX::XMFLOAT2(-adjust_width, 1.0f), DirectX::XMFLOAT2(0.0f, 0.0f) },
-			{ DirectX::XMFLOAT2(adjust_width, -1.0f), DirectX::XMFLOAT2(adjustTextureU, adjustTextureV) },
-			{ DirectX::XMFLOAT2(adjust_width, 1.0f), DirectX::XMFLOAT2(adjustTextureU, 0.0f) }
+      { DirectX::XMFLOAT2(-adjust_width, -1.0f), DirectX::XMFLOAT2(0.0f, 0.0f) },
+      { DirectX::XMFLOAT2(-adjust_width, 1.0f), DirectX::XMFLOAT2(0.0f, adjustTextureV) },
+      { DirectX::XMFLOAT2(adjust_width, -1.0f), DirectX::XMFLOAT2(adjustTextureU, 0.0f) },
+      { DirectX::XMFLOAT2(adjust_width, 1.0f), DirectX::XMFLOAT2(adjustTextureU, adjustTextureV) }
 		};
 
 

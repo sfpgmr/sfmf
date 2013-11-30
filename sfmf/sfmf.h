@@ -58,15 +58,15 @@ namespace sf {
 				sinkWriter_->Finalize();
 			}
 		}
-		void WriteSink();
 		void WriteAudioSample(IMFSample* sample);
-		void WriteVideoSample(IMFSample* sample);
-		void WriteTextureToBuffer(ID3D11DeviceContext1Ptr& context, ID3D11Texture2DPtr& texture);
+		void WriteVideoSample();
+		void SetTextureToSample(ID3D11DeviceContext1* context, ID3D11Texture2D* texture);
 
 		property UINT SamplesPerSecond;
 		property UINT AverageBytesPerSecond;
 		property UINT ChannelCount;
 		property UINT BitsPerSample;
+    property LONGLONG VideoSampleTime { LONGLONG get() { return videoSampleTime_; }}
 	private:
 		// 出力先ストリームへのポインタ
 		Windows::Storage::Streams::IRandomAccessStream^ stream_;
@@ -81,10 +81,12 @@ namespace sf {
 		IMFMediaTypePtr mediaTypeOutAudio_;
 		DWORD streamIndex_;
 		DWORD streamIndexAudio_;
+
 		IMFSamplePtr sample_;
 		IMFMediaBufferPtr buffer_;
-		LONGLONG sampleTime_;
-	};
+		LONGLONG videoSampleTime_;
+    LONGLONG audioSampleTime_;
+  };
 
 
 	class AudioReaderCallBack : public Microsoft::WRL::RuntimeClass<Microsoft::WRL::RuntimeClassFlags<Microsoft::WRL::ClassicCom>, IMFSourceReaderCallback >
@@ -138,7 +140,7 @@ namespace sf {
 
 		DWORD ReadSample(IMFSamplePtr& sample);
 		property LONGLONG SampleTime {
-			LONGLONG get(){ return sampleTime_; }
+			LONGLONG get(){ return videoSampleTime_; }
 		}
 		IMFMediaTypePtr& NativeMediaType(){ return nativeMediaType_; }
 		IMFMediaTypePtr& CurrentMediaType(){ return currentMediaType_; }
@@ -147,7 +149,8 @@ namespace sf {
 		IMFByteStreamPtr byteStream_;
 		IMFMediaTypePtr nativeMediaType_;
 		IMFMediaTypePtr currentMediaType_;
-		LONGLONG sampleTime_;
+		LONGLONG videoSampleTime_;
+    
 	};
 
 }

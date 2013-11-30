@@ -619,7 +619,7 @@ void DX::DeviceResources::Present()
 	// レンダリング ターゲットのコンテンツを破棄します。
 	// この操作は、既存のコンテンツ全体が上書きされる場合のみ有効です。
 	// dirty rect または scroll rect を使用する場合は、この呼び出しを削除する必要があります。
-	m_d3dContext->DiscardView(m_d3dRenderTargetView.Get());
+	//m_d3dContext->DiscardView(m_d3dRenderTargetView.Get());
 
 	// 深度ステンシルのコンテンツを破棄します。
 	m_d3dContext->DiscardView(m_d3dDepthStencilView.Get());

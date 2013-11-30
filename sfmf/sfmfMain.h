@@ -32,6 +32,7 @@ namespace sfmf
 		void ProcessInput();
 		void Update();
 		bool Render();
+    void RenderToVideo(IMFSample* sample);
 
 		// デバイス リソースへのキャッシュされたポインター。
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
@@ -54,6 +55,8 @@ namespace sfmf
 		Windows::Storage::Streams::IRandomAccessStream^ m_videoStream;
 		DirectXPage^ m_page;
 		bool ready_;
-
+    LONGLONG m_videoTime;
+    LONGLONG m_videoStepTime;
+    //std::mutex m_mutex;
 	};
 }
