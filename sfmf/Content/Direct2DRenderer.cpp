@@ -1,12 +1,12 @@
 ﻿#include "pch.h"
-#include "SampleFpsTextRenderer.h"
+#include "Direct2DRenderer.h"
 
 #include "Common/DirectXHelper.h"
 
 using namespace sfmf;
 
 // テキスト レンダリングで使用する D2D リソースを初期化します。
-SampleFpsTextRenderer::SampleFpsTextRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) : 
+Direct2DRenderer::Direct2DRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources) : 
 	m_text(L""),
 	m_deviceResources(deviceResources)
 {
@@ -38,7 +38,7 @@ SampleFpsTextRenderer::SampleFpsTextRenderer(const std::shared_ptr<DX::DeviceRes
 }
 
 // 表示するテキストを更新します。
-void SampleFpsTextRenderer::Update(LONGLONG stepTime)
+void Direct2DRenderer::Update(LONGLONG stepTime)
 {
 	// 表示するテキストを更新します。
 	// uint32 fps = timer.GetFramesPerSecond();
@@ -64,9 +64,11 @@ void SampleFpsTextRenderer::Update(LONGLONG stepTime)
 }
 
 // フレームを画面に描画します。
-void SampleFpsTextRenderer::Render(ID2D1Bitmap1* targetBitmap)
+void Direct2DRenderer::Render(INT16* waveBuffer,int length,ID2D1Bitmap1* targetBitmap)
 {
 	if (!targetBitmap) return;
+
+
 
 	ID2D1DeviceContext* context = m_deviceResources->GetD2DDeviceContext();
 	context->SetTarget(targetBitmap);
@@ -92,7 +94,16 @@ void SampleFpsTextRenderer::Render(ID2D1Bitmap1* targetBitmap)
 		m_whiteBrush.Get()
 		);
 
-  context->DrawLine(D2D1::Point2F(0.0f, 0.0f), D2D1::Point2F(100.0f, 100.0f), m_whiteBrush.Get());
+  // 波形データを表示する
+  const float delta = 1323.0f / VIDEO_WIDTH;
+  for (float i = 0; i < VIDEO_WIDTH; i += delta){
+    int pos = (int) i;
+    if (pos >= length) break;
+    float left = ((float) waveBuffer[pos]) / 32768.0f * 150.0f + 180.0f;
+    float right = ((float) waveBuffer[pos + 1]) / 32768.0f * 150.0f + 540.0f;
+    context->DrawLine(D2D1::Point2F(i, 180.0f), D2D1::Point2F(i, left), m_whiteBrush.Get());
+    context->DrawLine(D2D1::Point2F(i, 540.0f), D2D1::Point2F(i, right), m_whiteBrush.Get());
+  }
 
 	// D2DERR_RECREATE_TARGET をここで無視します。このエラーは、デバイスが失われたことを示します。
 	// これは、Present に対する次回の呼び出し中に処理されます。
@@ -105,13 +116,13 @@ void SampleFpsTextRenderer::Render(ID2D1Bitmap1* targetBitmap)
 	context->RestoreDrawingState(m_stateBlock.Get());
 }
 
-void SampleFpsTextRenderer::CreateDeviceDependentResources()
+void Direct2DRenderer::CreateDeviceDependentResources()
 {
 	DX::ThrowIfFailed(
 		m_deviceResources->GetD2DDeviceContext()->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &m_whiteBrush)
 		);
 }
-void SampleFpsTextRenderer::ReleaseDeviceDependentResources()
+void Direct2DRenderer::ReleaseDeviceDependentResources()
 {
 	m_whiteBrush.Reset();
 }

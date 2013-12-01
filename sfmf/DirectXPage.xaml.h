@@ -36,8 +36,8 @@ namespace sfmf
 		property ::Windows::UI::Xaml::Controls::Button^ openFileButton {
 			::Windows::UI::Xaml::Controls::Button^ get() { return openFileButton_; }
 		}
-
-	private:
+    void SetProgress(Windows::Foundation::IAsyncActionWithProgress<float>^ progress);
+  private:
 		// XAML 低レベル レンダリング イベント ハンドラー。
 		void OnRendering(Platform::Object^ sender, Platform::Object^ args);
 
@@ -70,6 +70,9 @@ namespace sfmf
 		void Button_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void openFileButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 
-	};
+    void ProgressInfo__ValueChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs^ e);
+    void ProgressInfo__ValueChanged_1(Platform::Object^ sender, Windows::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs^ e);
+    void Button_Click_1(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+  };
 }
 

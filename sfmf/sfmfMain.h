@@ -3,7 +3,7 @@
 #include "Common\StepTimer.h"
 #include "Common\DeviceResources.h"
 #include "Content\Sample3DSceneRenderer.h"
-#include "Content\SampleFpsTextRenderer.h"
+#include "Content\Direct2DRenderer.h"
 #include "sfhelper.h"
 #include "sfmf.h"
 
@@ -27,7 +27,7 @@ namespace sfmf
 		// IDeviceNotify
 		virtual void OnDeviceLost();
 		virtual void OnDeviceRestored();
-		void OpenFile();
+    void OpenFile();
 	private:
 		void ProcessInput();
 		void Update();
@@ -39,7 +39,7 @@ namespace sfmf
 
 		// TODO: これを独自のコンテンツ レンダラーで置き換えます。
 		std::unique_ptr<Sample3DSceneRenderer> m_sceneRenderer;
-		std::unique_ptr<SampleFpsTextRenderer> m_fpsTextRenderer;
+		std::unique_ptr<Direct2DRenderer> m_d2dRenderer;
 
 		Windows::Foundation::IAsyncAction^ m_renderLoopWorker;
 		Concurrency::critical_section m_criticalSection;
@@ -57,6 +57,8 @@ namespace sfmf
 		bool ready_;
     LONGLONG m_videoTime;
     LONGLONG m_videoStepTime;
+
+    Windows::Foundation::IAsyncActionWithProgress<float>^ m_writeProgress;
     //std::mutex m_mutex;
 	};
 }

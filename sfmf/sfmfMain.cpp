@@ -17,7 +17,7 @@ m_deviceResources(deviceResources), m_pointerLocationX(0.0f), m_page(page)
   // TODO: これをアプリのコンテンツの初期化で置き換えます。
   m_sceneRenderer = std::unique_ptr<Sample3DSceneRenderer>(new Sample3DSceneRenderer(m_deviceResources));
 
-  m_fpsTextRenderer = std::unique_ptr<SampleFpsTextRenderer>(new SampleFpsTextRenderer(m_deviceResources));
+  m_d2dRenderer = std::unique_ptr<Direct2DRenderer>(new Direct2DRenderer(m_deviceResources));
 
   // TODO: 既定の可変タイムステップ モード以外のモードが必要な場合は、タイマー設定を変更してください。
   // 例: 60 FPS 固定タイムステップ更新ロジックでは、次を呼び出します:
@@ -54,21 +54,21 @@ void sfmfMain::StartRenderLoop()
   auto workItemHandler = ref new WorkItemHandler([this](IAsyncAction ^ action)
   {
     // 更新されたフレームを計算し、垂直帰線消去期間ごとに 1 つレンダリングします。
-    while (action->Status == AsyncStatus::Started)
-    {
-      {
-        critical_section::scoped_lock lock(m_criticalSection);
-        //     if (m_criticalSection.try_lock()){
-        Update();
-        if (Render())
-        {
-          m_deviceResources->Present();
-        }
-        //       m_criticalSection.unlock();
-        //      }
+    //while (action->Status == AsyncStatus::Started)
+    //{
+    //  {
+    //    critical_section::scoped_lock lock(m_criticalSection);
+    //    //     if (m_criticalSection.try_lock()){
+    //    Update();
+    //    if (Render())
+    //    {
+    //      m_deviceResources->Present();
+    //    }
+    //    //       m_criticalSection.unlock();
+    //    //      }
 
-      }
-    }
+    //  }
+    //}
   });
 
   // 優先順の高い専用のバックグラウンド スレッドでタスクを実行します。
@@ -115,7 +115,7 @@ bool sfmfMain::Render()
   // シーン オブジェクトをレンダリングします。
   // TODO: これをアプリのコンテンツのレンダリング関数で置き換えます。
   //	m_sceneRenderer->RenderToTexture();
-  //	m_fpsTextRenderer->Render(m_sceneRenderer->GetvideoTextureBitmap());
+  //	m_d2dRenderer->Render(m_sceneRenderer->GetvideoTextureBitmap());
   m_sceneRenderer->Render();
   return true;
 }
@@ -124,14 +124,14 @@ bool sfmfMain::Render()
 void sfmfMain::OnDeviceLost()
 {
   m_sceneRenderer->ReleaseDeviceDependentResources();
-  m_fpsTextRenderer->ReleaseDeviceDependentResources();
+  m_d2dRenderer->ReleaseDeviceDependentResources();
 }
 
 // デバイス リソースの再作成が可能になったことをレンダラーに通知します。
 void sfmfMain::OnDeviceRestored()
 {
   m_sceneRenderer->CreateDeviceDependentResources();
-  m_fpsTextRenderer->CreateDeviceDependentResources();
+  m_d2dRenderer->CreateDeviceDependentResources();
   CreateWindowSizeDependentResources();
 }
 
@@ -166,7 +166,7 @@ void sfmfMain::OpenFile()
         m_audioReader = ref new sf::AudioReader(holder->readStream);
         // 出力ファイル(M4V)を作成する
         return create_task(Windows::Storage::KnownFolders::VideosLibrary->CreateFileAsync
-          (L"test.m4v", Windows::Storage::CreationCollisionOption::ReplaceExisting));
+          ((file->DisplayName + L".mp4"), Windows::Storage::CreationCollisionOption::ReplaceExisting));
       }).then([this, holder](task<Windows::Storage::StorageFile^> fileTask){
         // 出力ファイルを開く
         return create_task(fileTask.get()->OpenAsync(Windows::Storage::FileAccessMode::ReadWrite));
@@ -176,29 +176,37 @@ void sfmfMain::OpenFile()
         m_videoWriter = ref new sf::VideoWriter(holder->writeStream);
       }).then([this, holder]()->void {
         // オーディオファイルを読み込み、m4vファイルに書き込む
-        create_async([this, holder]()->void {
+          m_writeProgress = create_async([this, holder](concurrency::progress_reporter<float> reporter, concurrency::cancellation_token ct)->void {
           DWORD status = 0;
           m_videoTime = 0;
+          LONGLONG readSize = 0;
           while (true)
           {
             IMFSamplePtr sample;
             // オーディオサンプルを読み込む
             status = m_audioReader->ReadSample(sample);
-            if (status & MF_SOURCE_READERF_ENDOFSTREAM) {
-              // EOFならファイナライズ処理を行う
+ 
+            if ((status & MF_SOURCE_READERF_ENDOFSTREAM) || ct.is_canceled() ) {
+              // EOFもしくは中断したらファイナライズ処理を行う
               m_videoWriter->Finalize();
+              reporter.report(100.0f);
               break;
             }
+            DWORD size = 0;
+            sample->GetTotalLength(&size);
+            readSize += size;
             LONGLONG time;
             sample->GetSampleTime(&time);
             m_videoStepTime = time - m_videoTime;
             m_videoTime = time;
 
             m_videoWriter->WriteAudioSample(sample.Get());
-            RenderToVideo(sample.Get());
 
+            RenderToVideo(sample.Get());
+            reporter.report(((float)readSize / (float) m_audioReader->FileSize) * 100.0f);
           }
         });
+        m_page->SetProgress(m_writeProgress);
       });
     }
   });
@@ -207,22 +215,36 @@ void sfmfMain::OpenFile()
 void sfmfMain::RenderToVideo(IMFSample* sample)
 {
   // Direct3Dでオフスクリーンにレンダリングし、そのデータを書き込む
-  //IMFMediaBufferPtr buffer;
-  //CHK(sample->GetBufferByIndex(0, &buffer));
-  //BYTE* bufferBytes;
-  //CHK(buffer->Lock(&bufferBytes, nullptr, nullptr));
+  IMFMediaBufferPtr buffer;
+  CHK(sample->GetBufferByIndex(0, &buffer));
+  INT16* waveBuffer;
+  const DWORD lengthTick = 44100 /* Hz */ * 2 /* CH */ * 30 /* ms */ / 1000 /* ms */;
+  DWORD startPos = 0;
+  CHK(buffer->Lock((BYTE**) &waveBuffer, nullptr, nullptr));
+  DWORD totalLength;
+  CHK(buffer->GetCurrentLength(&totalLength));
+  totalLength /= 2;
+  DWORD length = lengthTick;
 
   while (m_videoTime > m_videoWriter->VideoSampleTime)
   {
     m_sceneRenderer->Update(m_videoWriter->VideoSampleTime);
-    m_fpsTextRenderer->Update(m_videoWriter->VideoSampleTime);
+    m_d2dRenderer->Update(m_videoWriter->VideoSampleTime);
     {
       // コンテキストの競合を回避するためにロックする
       critical_section::scoped_lock lock(m_criticalSection);
       // Direct3D11によるレンダリング
       m_sceneRenderer->RenderToTexture();
       // Direct2Dによるレンダリング
-      m_fpsTextRenderer->Render(m_sceneRenderer->GetvideoTextureBitmap());
+      m_d2dRenderer->Render(&waveBuffer[startPos],length,m_sceneRenderer->GetvideoTextureBitmap());
+      startPos += lengthTick;
+      if ((totalLength - startPos) > lengthTick)
+      {
+        length = lengthTick;
+      }
+      else {
+        length = totalLength - startPos;
+      }
       // 描画したテクスチャデータをステージテクスチャにコピーする
       m_sceneRenderer->CopyStageTexture();
       // ビデオデータを作成し、サンプルに収める
@@ -233,5 +255,5 @@ void sfmfMain::RenderToVideo(IMFSample* sample)
     m_videoWriter->WriteVideoSample();
   }
 
-
+  CHK(buffer->Unlock());
 }

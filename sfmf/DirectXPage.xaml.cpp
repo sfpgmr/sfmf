@@ -87,6 +87,9 @@ DirectXPage::DirectXPage():
 
 	m_main = std::unique_ptr<sfmfMain>(new sfmfMain(m_deviceResources,this));
 	m_main->StartRenderLoop();
+
+  ProgressInfo_->Maximum = 100.0;
+  ProgressInfo_->Minimum = 0;
 }
 
 DirectXPage::~DirectXPage()
@@ -201,6 +204,40 @@ void DirectXPage::OnSwapChainPanelSizeChanged(Object^ sender, SizeChangedEventAr
 
 void sfmf::DirectXPage::openFileButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
+  openFileButton_->IsEnabled = false;
+  m_main->OpenFile();
+}
 
-	m_main->OpenFile();
+void sfmf::DirectXPage::SetProgress(Windows::Foundation::IAsyncActionWithProgress<float>^ progress)
+{
+  progress->Progress = ref new Windows::Foundation::AsyncActionProgressHandler<float>(
+    [this](IAsyncActionWithProgress<float>^ act, float progress)
+  {
+    ProgressInfo_->Value = progress;
+  });
+
+  progress->Completed = ref new Windows::Foundation::AsyncActionWithProgressCompletedHandler<float>(
+    [this](Windows::Foundation::IAsyncActionWithProgress<float>^ act, Windows::Foundation::AsyncStatus status){
+    ProgressInfo_->Value = 100.0;
+    openFileButton_->IsEnabled = true;
+  });
+
+}
+
+
+void sfmf::DirectXPage::ProgressInfo__ValueChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs^ e)
+{
+
+}
+
+
+void sfmf::DirectXPage::ProgressInfo__ValueChanged_1(Platform::Object^ sender, Windows::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs^ e)
+{
+
+}
+
+
+void sfmf::DirectXPage::Button_Click_1(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+
 }

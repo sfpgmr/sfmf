@@ -7,16 +7,15 @@
 namespace sfmf
 {
 	// Direct2D および DirectWrite を使用して、画面右下隅に現在の FPS 値を描画します。
-	class SampleFpsTextRenderer
+	class Direct2DRenderer
 	{
 	public:
-		SampleFpsTextRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources);
+		Direct2DRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources);
 		void CreateDeviceDependentResources();
 		void ReleaseDeviceDependentResources();
 		void Update(LONGLONG stepTime);
-		void Render(ID2D1Bitmap1* targetBitmap = nullptr);
-
-	private:
+    void Render(INT16* waveBuffer,int length,ID2D1Bitmap1* targetBitmap = nullptr);
+  private:
 		// デバイス リソースへのキャッシュされたポインター。
 		std::shared_ptr<DX::DeviceResources> m_deviceResources;
 

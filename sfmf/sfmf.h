@@ -137,19 +137,21 @@ namespace sf {
 		property UINT AverageBytesPerSecond;
 		property UINT ChannelCount;
 		property UINT BitsPerSample;
-
+    property LONGLONG FileSize { LONGLONG get(){ return fileSize_; } }
 		DWORD ReadSample(IMFSamplePtr& sample);
 		property LONGLONG SampleTime {
 			LONGLONG get(){ return videoSampleTime_; }
 		}
 		IMFMediaTypePtr& NativeMediaType(){ return nativeMediaType_; }
 		IMFMediaTypePtr& CurrentMediaType(){ return currentMediaType_; }
+
 	private:
 		IMFSourceReaderExPtr reader_;
 		IMFByteStreamPtr byteStream_;
 		IMFMediaTypePtr nativeMediaType_;
 		IMFMediaTypePtr currentMediaType_;
 		LONGLONG videoSampleTime_;
+    LONGLONG fileSize_;
     
 	};
 

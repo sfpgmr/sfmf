@@ -327,7 +327,7 @@ namespace sf {
       CHK(spTypeOut->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video));     
       CHK(spTypeOut->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_H264));   
       CHK(spTypeOut->SetUINT32(MF_MT_AVG_BITRATE, BITRATE));   
-      CHK(spTypeOut->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive));   
+      CHK(spTypeOut->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive));
       CHK(MFSetAttributeSize(spTypeOut.Get(), MF_MT_FRAME_SIZE, WIDTH, HEIGHT));   
       CHK(MFSetAttributeRatio(spTypeOut.Get(), MF_MT_FRAME_RATE, RATE_NUM, RATE_DENOM));
       CHK(MFSetAttributeRatio(spTypeOut.Get(), MF_MT_PIXEL_ASPECT_RATIO, ASPECT_NUM, ASPECT_DENOM));
@@ -607,6 +607,7 @@ namespace sf {
 	  CHK(currentMediaType_->GetUINT32(MF_MT_AUDIO_BLOCK_ALIGNMENT, &blockAlign));
 
 	  DOUT(boost::wformat(L"Block Align: %10d %10x") % blockAlign % blockAlign);
+    fileSize_ = stream->Size;
 
   }
 
